@@ -1,32 +1,56 @@
-// src/components/EmployeeForm.jsx
-import React, { useState, useEffect } from 'react';
-import { createEmployee, updateEmployee, getEmployeeById } from '../services/api';
-
-const EmployeeForm = ({ selectedId, onSuccess }) => {
-  const [form, setForm] = useState({ firstName: '', lastName: '', title: '' });
-
-  useEffect(() => {
-    if (selectedId) {
-      getEmployeeById(selectedId).then(res => setForm(res.data.data));
+// src/services/EmployeeService.js
+import api from "./api";
+// same CRUD for /api/Employee/...
+export async function getAllEmployees() {
+  try {
+    const { data } = await api.get("/api/Employee/list");
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function getEmployeeById(id) {
+  try {
+    const { data } = await api.get(`/api/Employee/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function createEmployee(dto) {
+  try {
+    const { data } = await api.post("/api/Employee", dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function updateEmployee(id, dto) {
+  try {
+    const { data } = await api.put(`/api/Employee/${id}`, dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function deleteEmployee(id) {
+  try {
+    const { data } = await api.delete(`/api/Employee/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+  if (!window.confirm("Silinsin mi?")) return;
+  try {
+    const res = await deleteEmployee(id);
+    if (!res.success) alert(res.message);
+    else {
+      const updatedItems = items.filter(item => item.employeeID !== id);
+      setItems(updatedItems);
     }
-  }, [selectedId]);
-
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = async e => {
-    e.preventDefault();
-    selectedId ? await updateEmployee(selectedId, form) : await createEmployee(form);
-    onSuccess();
-    setForm({ firstName: '', lastName: '', title: '' });
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input name="firstName" value={form.firstName} onChange={handleChange} placeholder="First Name" required />
-      <input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Last Name" required />
-      <input name="title" value={form.title} onChange={handleChange} placeholder="Title" required />
-      <button type="submit">{selectedId ? 'Güncelle' : 'Ekle'}</button>
-    </form>
-  );
-};
-
-export default EmployeeForm;
+  }
+  catch (e) {
+    console.error(e);
+    alert("Silme işlemi sırasında hata oluştu.");
+  }

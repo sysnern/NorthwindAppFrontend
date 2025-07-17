@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+// src/components/CustomerList.jsx
+import React, { useEffect, useState } from "react";
+import { Modal, Button, Form, Spinner, Table, Alert } from "react-bootstrap";
 import {
   getAllCustomers,
   getCustomerById,
@@ -7,59 +9,144 @@ import {
   deleteCustomer,
 } from "../services/CustomerService";
 
-function CustomerList() {
-  const [customers, setCustomers] = useState([]);
-  const [form, setForm] = useState({ companyName: '', contactName: '' });
-  const [selectedId, setSelectedId] = useState(null);
+export default function CustomerList() {
+  const [items, setItems] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [show,   setShow]    = useState(false);
+  const [saving, setSaving]  = useState(false);
+  const [form,   setForm]    = useState({
+    customerID: "",
+    companyName: "",
+    contactName: ""
+  });
+  const [selId, setSelId]    = useState(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { fetchList() }, []);
+  async function fetchList() {
+    setLoading(true);
+    const res = await getAllCustomers();
+    if (res.success) setItems(res.data);
+    else alert(res.message);
+    setLoading(false);
+  }
 
-  const loadData = () => {
-    getAllCustomers().then(res => setCustomers(res.data.data));
-  };
+  async function open(id=null) {
+    setSelId(id);
+    if (id) {
+      setSaving(true);
+      const r = await getCustomerById(id);
+      if (!r.success) { alert(r.message); return; }
+      setForm(r.data);
+      setSaving(false);
+    } else {
+      setForm({ customerID:"", companyName:"", contactName:"" });
+    }
+    setShow(true);
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    selectedId
-      ? await updateCustomer({ customerId: selectedId, ...form })
-      : await createCustomer(form);
-    setForm({ companyName: '', contactName: '' });
-    setSelectedId(null);
-    loadData();
-  };
+  function onChange(e) {
+    const { name,value } = e.target;
+    setForm(f => ({ ...f, [name]:value }));
+  }
 
-  const handleEdit = async (id) => {
-    const res = await getCustomerById(id);
-    setForm(res.data.data);
-    setSelectedId(id);
-  };
+  async function save() {
+    setSaving(true);
+    let res;
+    if (selId) res = await updateCustomer(form);
+    else       res = await createCustomer(form);
+    if (!res.success) alert(res.message);
+    setShow(false);
+    fetchList();
+    setSaving(false);
+  }
 
-  const handleDelete = async (id) => {
-    await deleteCustomer(id);
-    loadData();
-  };
+  async function destroy(id) {
+    if (!window.confirm("Silinsin mi?")) return;
+    const r = await deleteCustomer(id);
+    if (!r.success) alert(r.message);
+    fetchList();
+  }
 
   return (
-    <div>
-      <h2>Müşteri Listesi</h2>
-      <form onSubmit={handleSubmit}>
-        <input name="companyName" value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} placeholder="Şirket Adı" required />
-        <input name="contactName" value={form.contactName} onChange={e => setForm({ ...form, contactName: e.target.value })} placeholder="İrtibat Kişisi" />
-        <button type="submit">{selectedId ? "Güncelle" : "Ekle"}</button>
-      </form>
-      <ul>
-        {customers.map(c => (
-          <li key={c.customerId}>
-            {c.companyName} - {c.contactName}
-            <button onClick={() => handleEdit(c.customerId)}>Düzenle</button>
-            <button onClick={() => handleDelete(c.customerId)}>Sil</button>
-          </li>
-        ))}
-      </ul>
+    <div className="container py-4">
+      <div className="d-flex justify-content-between mb-3">
+        <h2>Müşteri Listesi</h2>
+        <Button onClick={()=>open(null)}>Yeni</Button>
+      </div>
+
+      {loading
+        ? <div className="text-center"><Spinner/></div>
+        : items.length === 0
+          ? <Alert variant="info">Henüz hiç müşteri yok.</Alert>
+          : <Table striped hover>
+              <thead className="table-dark">
+                <tr>
+                  <th>ID</th><th>Şirket</th><th>İletişim</th><th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(c => (
+                  <tr key={c.customerID}>
+                    <td>{c.customerID}</td>
+                    <td>{c.companyName}</td>
+                    <td>{c.contactName}</td>
+                    <td className="text-end">
+                      <Button size="sm" variant="outline-primary" className="me-2"
+                        onClick={()=>open(c.customerID)}>
+                        <i className="bi bi-pencil-fill"/>
+                      </Button>
+                      <Button size="sm" variant="outline-danger"
+                        onClick={()=>destroy(c.customerID)}>
+                        <i className="bi bi-trash-fill"/>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+      }
+
+      <Modal show={show} onHide={()=>setShow(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>{selId ? "Güncelle" : "Yeni"} Müşteri</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-2">
+              <Form.Label>ID</Form.Label>
+              <Form.Control
+                name="customerID"
+                value={form.customerID}
+                onChange={onChange}
+                disabled={!!selId}
+              />
+            </Form.Group>
+            <Form.Group className="mb-2">
+              <Form.Label>Şirket</Form.Label>
+              <Form.Control
+                name="companyName"
+                value={form.companyName}
+                onChange={onChange}
+              />
+            </Form.Group>
+            <Form.Group className="mb-2">
+              <Form.Label>İletişim</Form.Label>
+              <Form.Control
+                name="contactName"
+                value={form.contactName}
+                onChange={onChange}
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={()=>setShow(false)}>İptal</Button>
+          <Button variant="primary" onClick={save} disabled={saving}>
+            {saving ? <Spinner size="sm" animation="border"/> : "Kaydet"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
-
-export default CustomerList;
+  

@@ -1,31 +1,56 @@
-// src/components/SupplierForm.jsx
-import React, { useState, useEffect } from 'react';
-import { createSupplier, updateSupplier, getSupplierById } from '../services/api';
-
-const SupplierForm = ({ selectedId, onSuccess }) => {
-  const [form, setForm] = useState({ companyName: '', contactTitle: '' });
-
-  useEffect(() => {
-    if (selectedId) {
-      getSupplierById(selectedId).then(res => setForm(res.data.data));
+// src/services/SupplierService.js
+import api from "./api";
+// same pattern as above, hitting /api/Supplier/...
+export async function getAllSuppliers() {
+  try {
+    const { data } = await api.get("/api/Supplier/list");
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function getSupplierById(id) {
+  try {
+    const { data } = await api.get(`/api/Supplier/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function createSupplier(dto) {
+  try {
+    const { data } = await api.post("/api/Supplier", dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function updateSupplier(id, dto) {
+  try {
+    const { data } = await api.put(`/api/Supplier/${id}`, dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function deleteSupplier(id) {
+  try {
+    const { data } = await api.delete(`/api/Supplier/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+    if (!window.confirm("Silinsin mi?")) return;
+    try {
+      const res = await deleteSupplier(id);
+      if (!res.success) alert(res.message);
+      else {
+        const updatedItems = items.filter(item => item.supplierID !== id);
+        setItems(updatedItems);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Silme işlemi sırasında hata oluştu.");
     }
-  }, [selectedId]);
-
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = async e => {
-    e.preventDefault();
-    selectedId ? await updateSupplier(selectedId, form) : await createSupplier(form);
-    onSuccess();
-    setForm({ companyName: '', contactTitle: '' });
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input name="companyName" value={form.companyName} onChange={handleChange} placeholder="Company Name" required />
-      <input name="contactTitle" value={form.contactTitle} onChange={handleChange} placeholder="Contact Title" required />
-      <button type="submit">{selectedId ? 'Güncelle' : 'Ekle'}</button>
-    </form>
-  );
-};
-
-export default SupplierForm;
+    

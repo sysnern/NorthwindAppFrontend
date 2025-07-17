@@ -1,8 +1,47 @@
 // src/services/CustomerService.js
-import api from './api';
+import api from "./api";
 
-export const getAllCustomers = () => api.get('Customer/list');
-export const getCustomerById = (id) => api.get(`Customer/${id}`);
-export const createCustomer = (data) => api.post('Customer', data);
-export const updateCustomer = (data) => api.put('Customer', data);
-export const deleteCustomer = (id) => api.delete(`Customer/${id}`);
+export async function getAllCustomers() {
+  try {
+    const { data } = await api.get("/api/Customer/list");
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+// ...getCustomerById, createCustomer, updateCustomer, deleteCustomer
+// exactly as CategoryService but hitting /api/Customer/*
+export async function getCustomerById(id) {
+  try {
+    const { data } = await api.get(`/api/Customer/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function createCustomer(dto) {
+  try {
+    const { data } = await api.post("/api/Customer", dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function updateCustomer(id, dto) {
+  try {
+    const { data } = await api.put(`/api/Customer/${id}`, dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function deleteCustomer(id) {
+  try {
+    const { data } = await api.delete(`/api/Customer/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+    

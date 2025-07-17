@@ -1,32 +1,41 @@
-// src/components/OrderForm.jsx
-import React, { useState, useEffect } from 'react';
-import { createOrder, updateOrder, getOrderById } from '../services/api';
+// src/services/OrderService.js
+import api from "./api";
 
-const OrderForm = ({ selectedId, onSuccess }) => {
-  const [form, setForm] = useState({ orderDate: '', requiredDate: '', freight: '' });
-
-  useEffect(() => {
-    if (selectedId) {
-      getOrderById(selectedId).then(res => setForm(res.data.data));
-    }
-  }, [selectedId]);
-
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = async e => {
-    e.preventDefault();
-    selectedId ? await updateOrder(selectedId, form) : await createOrder(form);
-    onSuccess();
-    setForm({ orderDate: '', requiredDate: '', freight: '' });
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input name="orderDate" value={form.orderDate} onChange={handleChange} placeholder="Order Date" required />
-      <input name="requiredDate" value={form.requiredDate} onChange={handleChange} placeholder="Required Date" required />
-      <input name="freight" value={form.freight} onChange={handleChange} placeholder="Freight" required />
-      <button type="submit">{selectedId ? 'Güncelle' : 'Ekle'}</button>
-    </form>
-  );
-};
-
-export default OrderForm;
+export async function getAllOrders() {
+  try { const { data } = await api.get("/api/Order/list"); return data; }
+  catch (e) { return { success:false, message:e.message } }
+}
+// getOrderById, createOrder, updateOrder, deleteOrder → same pattern
+export async function getOrderById(id) {
+  try {
+    const { data } = await api.get(`/api/Order/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function createOrder(dto) {
+  try {
+    const { data } = await api.post("/api/Order", dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function updateOrder(id, dto) {
+  try {
+    const { data } = await api.put(`/api/Order/${id}`, dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function deleteOrder(id) {
+  try {
+    const { data } = await api.delete(`/api/Order/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+      

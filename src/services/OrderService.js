@@ -1,29 +1,43 @@
 // src/services/OrderService.js
 import api from './api';
 
-export const getAllOrders = async () => {
-  // doğru endpoint: GET /api/Order
-  const { data } = await api.get('Order/list');
-  return data;   // { success, message, data: [ … ] }
-};
-
-export const getOrderById = async (id) => {
-  const { data } = await api.get(`Order/${id}`);
-  return data;
-};
-
-export const createOrder = async (payload) => {
-  const { data } = await api.post('Order', payload);
-  return data;
-};
-
-export const updateOrder = async (id, payload) => {
-  // put body’niz OrderUpdateDto’ye uymalı
-  const { data } = await api.put('Order', { orderID: id, ...payload });
-  return data;
-};
-
-export const deleteOrder = async (id) => {
-  const { data } = await api.delete(`Order/${id}`);
-  return data;
-};
+export async function getAllOrders() {
+  try {
+    const { data } = await api.get("/api/Order/list");
+    return data;
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+export async function getOrderById(id) {
+  try {
+    const { data } = await api.get(`/api/Order/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function createOrder(dto) {
+  try {
+    const { data } = await api.post("/api/Order", dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function updateOrder(id, dto) {
+  try {
+    const { data } = await api.put(`/api/Order/${id}`, dto);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+export async function deleteOrder(id) {
+  try {
+    const { data } = await api.delete(`/api/Order/${id}`);
+    return data;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
