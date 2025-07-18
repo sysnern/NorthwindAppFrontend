@@ -1,45 +1,52 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Link,
-  Navigate,           // ← Burayı ekleyin
-} from "react-router-dom";
-import ProductList   from "./components/ProductList";
-import CategoryList  from "./components/CategoryList";
-import CustomerList  from "./components/CustomerList";
-import SupplierList  from "./components/SupplierList";
-import EmployeeList  from "./components/EmployeeList";
-import OrderList     from "./components/OrderList";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Container, Navbar, Nav } from "react-bootstrap";
+
+import ProductsPage   from "./pages/ProductsPage";
+import CategoriesPage from "./pages/CategoriesPage";
+import CustomersPage  from "./pages/CustomersPage";
+import SuppliersPage  from "./pages/SuppliersPage";
+import EmployeesPage  from "./pages/EmployeesPage";
+import OrdersPage     from "./pages/OrdersPage";
 
 export default function App() {
   return (
-    <Router>
-      <div className="container py-4">
-        <nav className="mb-4">
-          <Link className="me-3" to="/products">Products</Link>
-          <Link className="me-3" to="/categories">Categories</Link>
-          <Link className="me-3" to="/customers">Customers</Link>
-          <Link className="me-3" to="/suppliers">Suppliers</Link>
-          <Link className="me-3" to="/employees">Employees</Link>
-          <Link to="/orders">Orders</Link>
-        </nav>
+    <>
+      {/* --- ÜST BAR --- */}
+      <Navbar bg="light" expand="lg" className="shadow-sm mb-4">
+        <Container fluid>
+          <Navbar.Brand href="/products" className="fw-bold text-primary">
+            Northwind UI
+          </Navbar.Brand>
+          <Navbar.Toggle aria-controls="main-nav" />
+          <Navbar.Collapse id="main-nav">
+            <Nav className="ms-auto">
+              <Nav.Link href="/products">Ürünler</Nav.Link>
+              <Nav.Link href="/categories">Kategoriler</Nav.Link>
+              <Nav.Link href="/customers">Müşteriler</Nav.Link>
+              <Nav.Link href="/suppliers">Tedarikçiler</Nav.Link>
+              <Nav.Link href="/employees">Çalışanlar</Nav.Link>
+              <Nav.Link href="/orders">Siparişler</Nav.Link>
+            </Nav>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
 
+      {/* --- SAYFA İÇERİĞİ --- */}
+      <Container fluid className="px-4">
         <Routes>
-          <Route path="/products"   element={<ProductList />}   />
-          <Route path="/categories" element={<CategoryList />}  />
-          <Route path="/customers"  element={<CustomerList />}  />
-          <Route path="/suppliers"  element={<SupplierList />}  />
-          <Route path="/employees"  element={<EmployeeList />}  />
-          <Route path="/orders"     element={<OrderList />}     />
+          <Route path="/" element={<Navigate to="/products" replace />} />
 
-          {/* / girilince products’a yönlendir */}
-          <Route path="/"           element={<Navigate to="/products" replace />} />
-          {/* bilinmeyen tüm rotalarda da products */}
-          <Route path="*"           element={<Navigate to="/products" replace />} />
+          <Route path="/products"   element={<ProductsPage   />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/customers"  element={<CustomersPage  />} />
+          <Route path="/suppliers"  element={<SuppliersPage  />} />
+          <Route path="/employees"  element={<EmployeesPage  />} />
+          <Route path="/orders"     element={<OrdersPage     />} />
+
+          <Route path="*" element={<Navigate to="/products" replace />} />
         </Routes>
-      </div>
-    </Router>
+      </Container>
+    </>
   );
 }
