@@ -1,10 +1,12 @@
 // 📁 src/services/ProductService.js
 import api from "./api";
 
-export async function getAllProducts() {
+export async function getAllProducts(filters) {
   try {
-    const { data } = await api.get("/api/Product/list");
-    return { success: true, data };
+    // filtreleri query string olarak yollamak isterseniz:
+    const { data: apiResp } = await api.get("/api/Product/list", { params: filters });
+    // apiResp = { success: true, data: [ … ], message: … }
+    return { success: true, data: apiResp.data };
   } catch (err) {
     return {
       success: false,

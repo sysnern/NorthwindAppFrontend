@@ -1,5 +1,11 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  Navigate,           // ← Burayı ekleyin
+} from "react-router-dom";
 import ProductList   from "./components/ProductList";
 import CategoryList  from "./components/CategoryList";
 import CustomerList  from "./components/CustomerList";
@@ -19,6 +25,7 @@ export default function App() {
           <Link className="me-3" to="/employees">Employees</Link>
           <Link to="/orders">Orders</Link>
         </nav>
+
         <Routes>
           <Route path="/products"   element={<ProductList />}   />
           <Route path="/categories" element={<CategoryList />}  />
@@ -26,6 +33,11 @@ export default function App() {
           <Route path="/suppliers"  element={<SupplierList />}  />
           <Route path="/employees"  element={<EmployeeList />}  />
           <Route path="/orders"     element={<OrderList />}     />
+
+          {/* / girilince products’a yönlendir */}
+          <Route path="/"           element={<Navigate to="/products" replace />} />
+          {/* bilinmeyen tüm rotalarda da products */}
+          <Route path="*"           element={<Navigate to="/products" replace />} />
         </Routes>
       </div>
     </Router>

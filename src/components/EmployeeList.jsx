@@ -1,4 +1,4 @@
-// src/components/EmployeeList.jsx
+// 📁 src/components/EmployeeList.jsx
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form, Spinner, Table, Alert } from "react-bootstrap";
 import {
@@ -10,104 +10,158 @@ import {
 } from "../services/EmployeeService";
 
 export default function EmployeeList() {
-  const [items,setItems]   = useState([]);
-  const [loading,setLoading]= useState(true);
-  const [show,setShow]     = useState(false);
-  const [saving,setSaving] = useState(false);
-  const [form,setForm]     = useState({
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
     employeeID: "",
     firstName: "",
-    lastName: ""
+    lastName: "",
   });
-  const [selId,setSelId]   = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
 
-  useEffect(() => { fetchList() }, []);
-  async function fetchList() {
-    setLoading(true);
-    const r = await getAllEmployees();
-    if (r.success) setItems(r.data);
-    else alert(r.message);
-    setLoading(false);
-  }
+  // —— Listeyi yükle (cleanup guard ile) ——
+  useEffect(() => {
+    let isMounted = true;
+    const fetchList = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllEmployees();
+        if (isMounted) {
+          if (res.success) setEmployees(res.data);
+          else alert(res.message);
+        }
+      } catch {
+        if (isMounted) alert("Listeleme hatası.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchList();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  async function open(id=null) {
-    setSelId(id);
+  // —— Modal’i aç (Yeni veya Düzenle) ——
+  const openModal = async (id = null) => {
+    setSelectedId(id);
     if (id) {
       setSaving(true);
-      const r = await getEmployeeById(id);
-      if (!r.success) { alert(r.message); return; }
-      setForm(r.data);
+      const res = await getEmployeeById(id);
+      if (res.success) setForm(res.data);
+      else alert(res.message);
       setSaving(false);
     } else {
-      setForm({ employeeID:"", firstName:"", lastName:"" });
+      setForm({ employeeID: "", firstName: "", lastName: "" });
     }
-    setShow(true);
-  }
+    setShowModal(true);
+  };
 
-  function onChange(e) {
-    const { name,value } = e.target;
-    setForm(f => ({ ...f, [name]:value }));
-  }
-
-  async function save() {
-    setSaving(true);
-    const r = selId
-      ? await updateEmployee(form)
-      : await createEmployee(form);
-    if (!r.success) alert(r.message);
-    setShow(false);
-    fetchList();
-    setSaving(false);
-  }
-
-  async function destroy(id) {
+  // —— Sil ——
+  const handleDelete = async (id) => {
     if (!window.confirm("Silinsin mi?")) return;
-    const r = await deleteEmployee(id);
-    if (!r.success) alert(r.message);
-    fetchList();
-  }
+    const res = await deleteEmployee(id);
+    if (res.success) {
+      // listeyi yeniden yükle
+      const listRes = await getAllEmployees();
+      if (listRes.success) setEmployees(listRes.data);
+      else alert(listRes.message);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  // —— Kaydet (Yeni / Güncelle) ——
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let res;
+      if (selectedId) {
+        // güncelleme: önce id sonra dto
+        res = await updateEmployee(selectedId, form);
+      } else {
+        // yeni kayıt
+        res = await createEmployee(form);
+      }
+      if (!res.success) throw new Error(res.message);
+      setShowModal(false);
+      // listeyi yeniden yükle
+      const listRes = await getAllEmployees();
+      if (listRes.success) setEmployees(listRes.data);
+      else alert(listRes.message);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // —— Form input değişimi ——
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  };
 
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between mb-3">
         <h2>Çalışan Listesi</h2>
-        <Button onClick={()=>open(null)}>Yeni</Button>
+        <Button onClick={() => openModal(null)}>Yeni</Button>
       </div>
 
-      {loading
-        ? <div className="text-center"><Spinner/></div>
-        : items.length === 0
-          ? <Alert variant="info">Henüz hiç çalışan yok.</Alert>
-          : <Table striped hover>
-              <thead className="table-dark">
-                <tr>
-                  <th>ID</th><th>Ad Soyad</th><th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(e => (
-                  <tr key={e.employeeID}>
-                    <td>{e.employeeID}</td>
-                    <td>{e.firstName} {e.lastName}</td>
-                    <td className="text-end">
-                      <Button size="sm" variant="outline-primary" className="me-2"
-                        onClick={()=>open(e.employeeID)}>
-                        <i className="bi bi-pencil-fill"/>
-                      </Button>
-                      <Button size="sm" variant="outline-danger"
-                        onClick={()=>destroy(e.employeeID)}>
-                        <i className="bi bi-trash-fill"/>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-      }
+      {loading ? (
+        <div className="text-center">
+          <Spinner />
+        </div>
+      ) : employees.length === 0 ? (
+        <Alert variant="info">Henüz hiç çalışan yok.</Alert>
+      ) : (
+        <Table striped hover>
+          <thead className="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Ad Soyad</th>
+              <th className="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees.map((emp) => (
+              <tr key={emp.employeeID}>
+                <td>{emp.employeeID}</td>
+                <td>
+                  {emp.firstName} {emp.lastName}
+                </td>
+                <td className="text-end">
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    className="me-2"
+                    onClick={() => openModal(emp.employeeID)}
+                  >
+                    <i className="bi bi-pencil-fill" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline-danger"
+                    onClick={() => handleDelete(emp.employeeID)}
+                  >
+                    <i className="bi bi-trash-fill" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
-      <Modal show={show} onHide={()=>setShow(false)} centered>
+      {/* —— Modal / Popup —— */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>{selId ? "Güncelle" : "Yeni"} Çalışan</Modal.Title>
+          <Modal.Title>
+            {selectedId ? "Güncelle" : "Yeni"} Çalışan
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
@@ -116,8 +170,8 @@ export default function EmployeeList() {
               <Form.Control
                 name="employeeID"
                 value={form.employeeID}
-                disabled={!!selId}
-                onChange={onChange}
+                disabled={!!selectedId}
+                onChange={handleChange}
               />
             </Form.Group>
             <Form.Group className="mb-2">
@@ -125,7 +179,7 @@ export default function EmployeeList() {
               <Form.Control
                 name="firstName"
                 value={form.firstName}
-                onChange={onChange}
+                onChange={handleChange}
               />
             </Form.Group>
             <Form.Group className="mb-2">
@@ -133,15 +187,17 @@ export default function EmployeeList() {
               <Form.Control
                 name="lastName"
                 value={form.lastName}
-                onChange={onChange}
+                onChange={handleChange}
               />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={()=>setShow(false)}>İptal</Button>
-          <Button variant="primary" onClick={save} disabled={saving}>
-            {saving ? <Spinner size="sm" animation="border"/> : "Kaydet"}
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            İptal
+          </Button>
+          <Button variant="primary" onClick={handleSave} disabled={saving}>
+            {saving ? <Spinner size="sm" animation="border" /> : "Kaydet"}
           </Button>
         </Modal.Footer>
       </Modal>

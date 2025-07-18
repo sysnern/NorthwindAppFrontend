@@ -1,4 +1,4 @@
-// src/components/OrderList.jsx
+// 📁 src/components/OrderList.jsx
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form, Spinner, Table, Alert } from "react-bootstrap";
 import {
@@ -10,113 +10,168 @@ import {
 } from "../services/OrderService";
 
 export default function OrderList() {
-  const [items,setItems]   = useState([]);
-  const [loading,setLoading]= useState(true);
-  const [show,setShow]     = useState(false);
-  const [saving,setSaving] = useState(false);
-  const [form,setForm]     = useState({
+  const [orders, setOrders]     = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [form, setForm]         = useState({
     orderID: "",
     customerID: "",
     employeeID: "",
-    orderDate: ""
+    orderDate: "",
   });
-  const [selId,setSelId]   = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
 
-  useEffect(() => { fetchList() }, []);
-  async function fetchList() {
-    setLoading(true);
-    const r = await getAllOrders();
-    if (r.success) setItems(r.data);
-    else alert(r.message);
-    setLoading(false);
-  }
+  // —— Listeyi yükle (cleanup‑guard ile)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchList = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllOrders();
+        if (isMounted) {
+          if (res.success) setOrders(res.data);
+          else alert(res.message);
+        }
+      } catch {
+        if (isMounted) alert("Sipariş listeleme hatası.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchList();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  async function open(id=null) {
-    setSelId(id);
-    if (id) {
+  // —— Modal’i aç (Yeni / Düzenle)
+  const openModal = async (id = null) => {
+    setSelectedId(id);
+    if (id !== null) {
       setSaving(true);
-      const r = await getOrderById(id);
-      if (!r.success) { alert(r.message); return; }
-      setForm({
-        orderID:    r.data.orderID,
-        customerID: r.data.customerID,
-        employeeID: r.data.employeeID,
-        orderDate:  r.data.orderDate?.slice(0,10) || ""
-      });
+      const res = await getOrderById(id);
+      if (res.success) {
+        setForm({
+          orderID: res.data.orderID,
+          customerID: res.data.customerID,
+          employeeID: res.data.employeeID,
+          orderDate: res.data.orderDate?.slice(0, 10) ?? "",
+        });
+      } else {
+        alert(res.message);
+      }
       setSaving(false);
     } else {
-      setForm({ orderID:"",customerID:"",employeeID:"",orderDate:"" });
+      setForm({ orderID: "", customerID: "", employeeID: "", orderDate: "" });
     }
-    setShow(true);
-  }
+    setShowModal(true);
+  };
 
-  function onChange(e) {
-    const { name,value } = e.target;
-    setForm(f=>({...f,[name]:value}));
-  }
-
-  async function save() {
-    setSaving(true);
-    let r;
-    if (selId) r = await updateOrder(form);
-    else       r = await createOrder(form);
-    if (!r.success) alert(r.message);
-    setShow(false);
-    fetchList();
-    setSaving(false);
-  }
-
-  async function destroy(id) {
+  // —— Sil
+  const handleDelete = async (id) => {
     if (!window.confirm("Silinsin mi?")) return;
-    const r = await deleteOrder(id);
-    if (!r.success) alert(r.message);
-    fetchList();
-  }
+    const res = await deleteOrder(id);
+    if (res.success) {
+      const listRes = await getAllOrders();
+      if (listRes.success) setOrders(listRes.data);
+      else alert(listRes.message);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  // —— Kaydet (Yeni / Güncelle)
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let res;
+      if (selectedId !== null) {
+        res = await updateOrder({
+          orderID: form.orderID,
+          customerID: form.customerID,
+          employeeID: form.employeeID,
+          orderDate: form.orderDate,
+        });
+      } else {
+        res = await createOrder(form);
+      }
+      if (!res.success) throw new Error(res.message);
+      setShowModal(false);
+      const listRes = await getAllOrders();
+      if (listRes.success) setOrders(listRes.data);
+      else alert(listRes.message);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // —— Form input değişimi
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
+  };
 
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between mb-3">
         <h2>Sipariş Listesi</h2>
-        <Button onClick={()=>open(null)}>Yeni</Button>
+        <Button onClick={() => openModal(null)}>Yeni</Button>
       </div>
 
-      {loading
-        ? <div className="text-center"><Spinner/></div>
-        : items.length === 0
-          ? <Alert variant="info">Henüz hiç sipariş yok.</Alert>
-          : <Table striped hover>
-              <thead className="table-dark">
-                <tr>
-                  <th>ID</th><th>Customer</th><th>Employee</th><th>Tarih</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(o=>(
-                  <tr key={o.orderID}>
-                    <td>{o.orderID}</td>
-                    <td>{o.customerID}</td>
-                    <td>{o.employeeID}</td>
-                    <td>{o.orderDate?.slice(0,10)}</td>
-                    <td className="text-end">
-                      <Button size="sm" variant="outline-primary" className="me-2"
-                        onClick={()=>open(o.orderID)}>
-                        <i className="bi bi-pencil-fill"/>
-                      </Button>
-                      <Button size="sm" variant="outline-danger"
-                        onClick={()=>destroy(o.orderID)}>
-                        <i className="bi bi-trash-fill"/>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-      }
+      {loading ? (
+        <div className="text-center"><Spinner /></div>
+      ) : orders.length === 0 ? (
+        <Alert variant="info">Henüz hiç sipariş yok.</Alert>
+      ) : (
+        <Table striped hover>
+          <thead className="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Customer</th>
+              <th>Employee</th>
+              <th>Tarih</th>
+              <th className="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(o => (
+              <tr key={o.orderID}>
+                <td>{o.orderID}</td>
+                <td>{o.customerID}</td>
+                <td>{o.employeeID}</td>
+                <td>{o.orderDate?.slice(0, 10)}</td>
+                <td className="text-end">
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    className="me-2"
+                    onClick={() => openModal(o.orderID)}
+                  >
+                    <i className="bi bi-pencil-fill" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline-danger"
+                    onClick={() => handleDelete(o.orderID)}
+                  >
+                    <i className="bi bi-trash-fill" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
-      <Modal show={show} onHide={()=>setShow(false)} centered>
+      {/* —— Modal / Popup —— */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>{selId? "Güncelle":"Yeni"} Sipariş</Modal.Title>
+          <Modal.Title>
+            {selectedId !== null ? "Güncelle" : "Yeni"} Sipariş
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
@@ -125,8 +180,8 @@ export default function OrderList() {
               <Form.Control
                 name="orderID"
                 value={form.orderID}
-                disabled={!!selId}
-                onChange={onChange}
+                disabled={!!selectedId || saving}
+                onChange={handleChange}
               />
             </Form.Group>
             <Form.Group className="mb-2">
@@ -134,7 +189,8 @@ export default function OrderList() {
               <Form.Control
                 name="customerID"
                 value={form.customerID}
-                onChange={onChange}
+                disabled={saving}
+                onChange={handleChange}
               />
             </Form.Group>
             <Form.Group className="mb-2">
@@ -142,7 +198,8 @@ export default function OrderList() {
               <Form.Control
                 name="employeeID"
                 value={form.employeeID}
-                onChange={onChange}
+                disabled={saving}
+                onChange={handleChange}
               />
             </Form.Group>
             <Form.Group className="mb-2">
@@ -151,15 +208,26 @@ export default function OrderList() {
                 type="date"
                 name="orderDate"
                 value={form.orderDate}
-                onChange={onChange}
+                disabled={saving}
+                onChange={handleChange}
               />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={()=>setShow(false)}>İptal</Button>
-          <Button variant="primary" onClick={save} disabled={saving}>
-            {saving? <Spinner size="sm" animation="border"/> : "Kaydet"}
+          <Button
+            variant="secondary"
+            onClick={() => setShowModal(false)}
+            disabled={saving}
+          >
+            İptal
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? <Spinner size="sm" animation="border" /> : "Kaydet"}
           </Button>
         </Modal.Footer>
       </Modal>

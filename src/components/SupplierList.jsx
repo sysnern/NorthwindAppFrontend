@@ -1,4 +1,4 @@
-// src/components/SupplierList.jsx
+// 📁 src/components/SupplierList.jsx
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form, Spinner, Table, Alert } from "react-bootstrap";
 import {
@@ -10,105 +10,148 @@ import {
 } from "../services/SupplierService";
 
 export default function SupplierList() {
-  const [items, setItems] = useState([]);
-  const [loading,setLoading] = useState(true);
-  const [show,   setShow]    = useState(false);
-  const [saving, setSaving]  = useState(false);
-  const [form,   setForm]    = useState({
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
     supplierID: "",
     companyName: "",
-    contactName: ""
+    contactName: "",
   });
-  const [selId, setSelId]    = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
 
-  useEffect(() => { fetchList() }, []);
-  async function fetchList() {
-    setLoading(true);
-    const res = await getAllSuppliers();
-    if (res.success) setItems(res.data);
-    else alert(res.message);
-    setLoading(false);
-  }
+  // —— Listeyi yükle (cleanup guard ile)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchList = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllSuppliers();
+        if (isMounted) {
+          if (res.success) setSuppliers(res.data);
+          else alert(res.message);
+        }
+      } catch {
+        if (isMounted) alert("Tedarikçi listeleme hatası.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchList();
+    return () => { isMounted = false; };
+  }, []);
 
-  async function open(id=null) {
-    setSelId(id);
-    if (id) {
+  // —— Modal’i aç (Yeni / Düzenle)
+  const openModal = async (id = null) => {
+    setSelectedId(id);
+    if (id !== null) {
       setSaving(true);
-      const r = await getSupplierById(id);
-      if (!r.success) { alert(r.message); return; }
-      setForm(r.data);
+      const res = await getSupplierById(id);
+      if (res.success) setForm(res.data);
+      else alert(res.message);
       setSaving(false);
     } else {
-      setForm({ supplierID:"", companyName:"", contactName:"" });
+      setForm({ supplierID: "", companyName: "", contactName: "" });
     }
-    setShow(true);
-  }
+    setShowModal(true);
+  };
 
-  function onChange(e) {
-    const { name,value } = e.target;
-    setForm(f => ({ ...f, [name]:value }));
-  }
-
-  async function save() {
-    setSaving(true);
-    const r = selId
-      ? await updateSupplier(form)
-      : await createSupplier(form);
-    if (!r.success) alert(r.message);
-    setShow(false);
-    fetchList();
-    setSaving(false);
-  }
-
-  async function destroy(id) {
+  // —— Sil
+  const handleDelete = async (id) => {
     if (!window.confirm("Silinsin mi?")) return;
-    const r = await deleteSupplier(id);
-    if (!r.success) alert(r.message);
-    fetchList();
-  }
+    const res = await deleteSupplier(id);
+    if (res.success) {
+      const listRes = await getAllSuppliers();
+      if (listRes.success) setSuppliers(listRes.data);
+      else alert(listRes.message);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  // —— Kaydet (Yeni / Güncelle)
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let res;
+      if (selectedId !== null) {
+        res = await updateSupplier(form);
+      } else {
+        res = await createSupplier(form);
+      }
+      if (!res.success) throw new Error(res.message);
+      setShowModal(false);
+      const listRes = await getAllSuppliers();
+      if (listRes.success) setSuppliers(listRes.data);
+      else alert(listRes.message);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // —— Form input değişimi
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
+  };
 
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between mb-3">
         <h2>Tedarikçi Listesi</h2>
-        <Button onClick={()=>open(null)}>Yeni</Button>
+        <Button onClick={() => openModal(null)}>Yeni</Button>
       </div>
 
-      {loading
-        ? <div className="text-center"><Spinner/></div>
-        : items.length === 0
-          ? <Alert variant="info">Henüz hiç tedarikçi yok.</Alert>
-          : <Table striped hover>
-              <thead className="table-dark">
-                <tr>
-                  <th>ID</th><th>Şirket</th><th>İletişim</th><th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(s => (
-                  <tr key={s.supplierID}>
-                    <td>{s.supplierID}</td>
-                    <td>{s.companyName}</td>
-                    <td>{s.contactName}</td>
-                    <td className="text-end">
-                      <Button size="sm" variant="outline-primary" className="me-2"
-                        onClick={()=>open(s.supplierID)}>
-                        <i className="bi bi-pencil-fill"/>
-                      </Button>
-                      <Button size="sm" variant="outline-danger"
-                        onClick={()=>destroy(s.supplierID)}>
-                        <i className="bi bi-trash-fill"/>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-      }
+      {loading ? (
+        <div className="text-center"><Spinner /></div>
+      ) : suppliers.length === 0 ? (
+        <Alert variant="info">Henüz hiç tedarikçi yok.</Alert>
+      ) : (
+        <Table striped hover>
+          <thead className="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Şirket</th>
+              <th>İletişim</th>
+              <th className="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {suppliers.map(s => (
+              <tr key={s.supplierID}>
+                <td>{s.supplierID}</td>
+                <td>{s.companyName}</td>
+                <td>{s.contactName}</td>
+                <td className="text-end">
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    className="me-2"
+                    onClick={() => openModal(s.supplierID)}
+                  >
+                    <i className="bi bi-pencil-fill"/>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline-danger"
+                    onClick={() => handleDelete(s.supplierID)}
+                  >
+                    <i className="bi bi-trash-fill"/>
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
-      <Modal show={show} onHide={()=>setShow(false)} centered>
+      {/* —— Modal / Popup —— */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>{selId ? "Güncelle" : "Yeni"} Tedarikçi</Modal.Title>
+          <Modal.Title>{selectedId !== null ? "Güncelle" : "Yeni"} Tedarikçi</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
@@ -117,8 +160,8 @@ export default function SupplierList() {
               <Form.Control
                 name="supplierID"
                 value={form.supplierID}
-                disabled={!!selId}
-                onChange={onChange}
+                disabled={!!selectedId || saving}
+                onChange={handleChange}
               />
             </Form.Group>
             <Form.Group className="mb-2">
@@ -126,7 +169,8 @@ export default function SupplierList() {
               <Form.Control
                 name="companyName"
                 value={form.companyName}
-                onChange={onChange}
+                disabled={saving}
+                onChange={handleChange}
               />
             </Form.Group>
             <Form.Group className="mb-2">
@@ -134,14 +178,25 @@ export default function SupplierList() {
               <Form.Control
                 name="contactName"
                 value={form.contactName}
-                onChange={onChange}
+                disabled={saving}
+                onChange={handleChange}
               />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={()=>setShow(false)}>İptal</Button>
-          <Button variant="primary" onClick={save} disabled={saving}>
+          <Button
+            variant="secondary"
+            onClick={() => setShowModal(false)}
+            disabled={saving}
+          >
+            İptal
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
             {saving ? <Spinner size="sm" animation="border"/> : "Kaydet"}
           </Button>
         </Modal.Footer>

@@ -1,10 +1,12 @@
 // src/services/CategoryService.js
 import api from "./api";
 
-export async function getAllCategories() {
+export async function getAllCategories(filters) {
   try {
-    const { data } = await api.get("/api/Category/list");
-    return { success: true, data };
+    // filtreleri query string olarak yollamak isterseniz:
+    const { data: apiResp } = await api.get("/api/Category/list", { params: filters });
+    // apiResp = { success: true, data: [ … ], message: … }
+    return { success: true, data: apiResp.data };
   } catch (err) {
     return {
       success: false,
