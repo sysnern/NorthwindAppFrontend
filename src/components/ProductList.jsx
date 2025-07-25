@@ -52,7 +52,9 @@ export default function ProductList() {
 
   // useEffect artık doğrudan load() çağırıyor
   useEffect(() => {
-    load();
+    (async () => {
+      await load();
+    })();
   }, [true]);
 
   // filtre değişti
