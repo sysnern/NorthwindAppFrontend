@@ -10,8 +10,6 @@ export async function getAllCustomers() {
   }
 }
 
-// ...getCustomerById, createCustomer, updateCustomer, deleteCustomer
-// exactly as CategoryService but hitting /api/Customer/*
 export async function getCustomerById(id) {
   try {
     const { data } = await api.get(`/api/Customer/${id}`);
@@ -28,12 +26,16 @@ export async function createCustomer(dto) {
     return { success: false, message: err.message };
   }
 }
-export async function updateCustomer(id, dto) {
+export async function updateCustomer(dto) {
   try {
-    const { data } = await api.put(`/api/Customer/${id}`, dto);
-    return data;
+    // dto = { customerID, companyName, contactName }
+    const { data } = await api.put("/api/Customer", dto);
+    return { success: true, data };
   } catch (err) {
-    return { success: false, message: err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   }
 }
 export async function deleteCustomer(id) {

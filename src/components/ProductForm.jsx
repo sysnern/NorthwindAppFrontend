@@ -1,67 +1,93 @@
-// src/components/ProductForm.jsx
-import React, { useState, useEffect } from 'react';
-import {
-  createProduct,
-  updateProduct,
-  getProductById,
-} from '../services/api';
+import React, { useEffect, useState } from "react";
+import { Form, Row, Col } from "react-bootstrap";
+import { getAllCategories } from "../services/CategoryService";
 
-const ProductForm = ({ selectedId, onSuccess }) => {
-  const [form, setForm] = useState({
-    productName: '',
-    unitPrice: '',
-    unitsInStock: '',
-  });
+export default function ProductForm({ form, setForm, disabled }) {
+  const [categories, setCategories] = useState([]);
 
-  useEffect(() => {
-    if (selectedId) {
-      getProductById(selectedId).then((res) => setForm(res.data.data));
-    }
-  }, [selectedId]);
+  useEffect(async() => {
+    // Kategori listesini alıp dropdown'a dolduralım
+    (async () => {
+      const res = await getAllCategories();
+      if (res.success) setCategories(res.data);
+    })();
+  }, []);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (selectedId) {
-      await updateProduct(selectedId, form);
-    } else {
-      await createProduct(form);
-    }
-    setForm({ productName: '', unitPrice: '', unitsInStock: '' });
-    onSuccess();
+  const onChange = e => {
+    const { name, value, type, checked } = e.target;
+    setForm(f => ({ 
+      ...f, 
+      [name]: type === "checkbox" ? checked : value 
+    }));
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        name="productName"
-        value={form.productName}
-        onChange={handleChange}
-        placeholder="Ürün Adı"
-        required
-      />
-      <input
-        name="unitPrice"
-        value={form.unitPrice}
-        onChange={handleChange}
-        placeholder="Birim Fiyat"
-        required
-      />
-      <input
-        name="unitsInStock"
-        value={form.unitsInStock}
-        onChange={handleChange}
-        placeholder="Stok Adedi"
-        required
-      />
-      <button type="submit">
-        {selectedId ? 'Güncelle' : 'Ekle'}
-      </button>
-    </form>
-  );
-};
+    <Form>
+      <Form.Group className="mb-3">
+        <Form.Label>Ürün Adı</Form.Label>
+        <Form.Control
+          name="productName"
+          value={form.productName || ""}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      </Form.Group>
 
-export default ProductForm;
+      <Row className="mb-3">
+        <Col>
+          <Form.Group>
+            <Form.Label>Kategori</Form.Label>
+            <Form.Select
+              name="categoryID"
+              value={form.categoryID || ""}
+              disabled={disabled}
+              onChange={onChange}
+            >
+              <option value="">-- Seçiniz --</option>
+              {categories.map(c => (
+                <option key={c.categoryID} value={c.categoryID}>
+                  {c.categoryName}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col>
+          <Form.Group>
+            <Form.Label>Fiyat</Form.Label>
+            <Form.Control
+              type="number"
+              name="unitPrice"
+              value={form.unitPrice ?? ""}
+              disabled={disabled}
+              onChange={onChange}
+            />
+          </Form.Group>
+        </Col>
+        <Col>
+          <Form.Group>
+            <Form.Label>Stok</Form.Label>
+            <Form.Control
+              type="number"
+              name="unitsInStock"
+              value={form.unitsInStock ?? ""}
+              disabled={disabled}
+              onChange={onChange}
+            />
+          </Form.Group>
+        </Col>
+      </Row>
+
+      <Form.Group className="mb-3">
+        <Form.Check
+          type="checkbox"
+          label="Pasif"
+          name="discontinued"
+          checked={!!form.discontinued}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      </Form.Group>
+    </Form>
+  );
+}

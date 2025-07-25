@@ -41,6 +41,7 @@ export async function createCategory(dto) {
 
 export async function updateCategory(dto) {
   try {
+    // dto = { categoryId, categoryName }
     const { data } = await api.put("/api/Category", dto);
     return { success: true, data };
   } catch (err) {

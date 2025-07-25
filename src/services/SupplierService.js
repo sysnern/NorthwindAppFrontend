@@ -36,9 +36,10 @@ export async function createSupplier(dto) {
     };
   }
 }
-export async function updateSupplier(id, dto) {
+export async function updateSupplier(dto) {
   try {
-    const { data } = await api.put(`/api/Supplier/${id}`, dto);
+    // dto = { supplierID, companyName, contactName }
+    const { data } = await api.put("/api/Supplier", dto);
     return { success: true, data };
   } catch (err) {
     return {

@@ -53,7 +53,7 @@ export default function ProductList() {
   // useEffect artık doğrudan load() çağırıyor
   useEffect(() => {
     load();
-  }, []);
+  }, [true]);
 
   // filtre değişti
   const handleFilterChange = e => {

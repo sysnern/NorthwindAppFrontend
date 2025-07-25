@@ -25,12 +25,16 @@ export async function createEmployee(dto) {
     return { success: false, message: err.message };
   }
 }
-export async function updateEmployee(id, dto) {
+export async function updateEmployee(dto) {
   try {
-    const { data } = await api.put(`/api/Employee/${id}`, dto);
-    return data;
+    // dto = { employeeID, firstName, lastName }
+    const { data } = await api.put("/api/Employee", dto);
+    return { success: true, data };
   } catch (err) {
-    return { success: false, message: err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   }
 }
 export async function deleteEmployee(id) {

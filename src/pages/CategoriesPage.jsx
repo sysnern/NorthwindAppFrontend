@@ -1,5 +1,6 @@
+// src/pages/CategoriesPage.jsx
 import React from "react";
-import { Card, Button } from "react-bootstrap";
+import { Card, Button, Form } from "react-bootstrap";
 import CrudPage from "../components/CrudPage";
 import {
   getAllCategories,
@@ -20,18 +21,18 @@ export default function CategoriesPage() {
       deleteItem={deleteCategory}
 
       filterFields={[
-        { name:"categoryName", label:"Kategori Adı", placeholder:"Kategori Adı" }
+        { name: "categoryName", label: "Ad", placeholder: "Kategori Adı" }
       ]}
 
       sortOptions={[
-        { value:"categoryID",   label:"ID (Artan)" },
-        { value:"categoryName", label:"Ad (A–Z)" },
+        { value: "categoryID",   label: "ID (Artan)" },
+        { value: "categoryName", label: "Ad (A–Z)" }
       ]}
 
-      mapItemToId={c=>c.categoryID}
+      mapItemToId={c => c.categoryID}
 
       renderCardBody={(c, open, del) => (
-        <>
+        <div key={c.categoryID}>
           <Card.Title className="mb-2 text-truncate">
             {c.categoryName}
           </Card.Title>
@@ -43,7 +44,21 @@ export default function CategoriesPage() {
               Sil
             </Button>
           </div>
-        </>
+        </div>
+      )}
+
+      renderFormFields={({ form, setForm, disabled }) => (
+        <Form>
+          <Form.Group className="mb-2">
+            <Form.Label>Ad</Form.Label>
+            <Form.Control
+              name="categoryName"
+              value={form.categoryName || ""}
+              onChange={e => setForm(f => ({ ...f, categoryName: e.target.value }))}
+              disabled={disabled}
+            />
+          </Form.Group>
+        </Form>
       )}
     />
   );
