@@ -5,7 +5,7 @@ import { getAllCategories } from "../services/CategoryService";
 export default function ProductForm({ form, setForm, disabled }) {
   const [categories, setCategories] = useState([]);
 
-  useEffect(async() => {
+  useEffect(() => {
     // Kategori listesini alıp dropdown'a dolduralım
     (async () => {
       const res = await getAllCategories();
