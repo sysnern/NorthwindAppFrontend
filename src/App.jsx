@@ -1,8 +1,9 @@
 import React from "react";
-import { Routes, Route, Navigate, NavLink } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Container, Navbar, Nav } from "react-bootstrap";
-import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
+import HomePage       from "./pages/HomePage";
 import ProductsPage   from "./pages/ProductsPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import CustomersPage  from "./pages/CustomersPage";
@@ -16,18 +17,19 @@ export default function App() {
       {/* --- ÜST BAR --- */}
       <Navbar bg="light" expand="lg" className="shadow-sm mb-4">
         <Container fluid>
-          <Navbar.Brand href="/products" className="fw-bold text-primary">
+          <Navbar.Brand href="/" className="fw-bold text-primary">
             Northwind UI
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="main-nav" />
           <Navbar.Collapse id="main-nav">
             <Nav className="ms-auto">
-              <Nav.Link as={NavLink} to="/products">Ürünler</Nav.Link>
-              <Nav.Link as={NavLink} to="/categories">Kategoriler</Nav.Link>
-              <Nav.Link as={NavLink} to="/customers">Müşteriler</Nav.Link>
-              <Nav.Link as={NavLink} to="/suppliers">Tedarikçiler</Nav.Link>
-              <Nav.Link as={NavLink} to="/employees">Çalışanlar</Nav.Link>
-              <Nav.Link as={NavLink} to="/orders">Siparişler</Nav.Link>
++             <Nav.Link href="/">Anasayfa</Nav.Link>
+              <Nav.Link href="/products">Ürünler</Nav.Link>
+              <Nav.Link href="/categories">Kategoriler</Nav.Link>
+              <Nav.Link href="/customers">Müşteriler</Nav.Link>
+              <Nav.Link href="/suppliers">Tedarikçiler</Nav.Link>
+              <Nav.Link href="/employees">Çalışanlar</Nav.Link>
+              <Nav.Link href="/orders">Siparişler</Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Container>
@@ -36,8 +38,10 @@ export default function App() {
       {/* --- SAYFA İÇERİĞİ --- */}
       <Container fluid className="px-4">
         <Routes>
-          <Route path="/" element={<Navigate to="/products" replace />} />
+          {/* Anasayfa */}
+          <Route path="/" element={<HomePage />} />
 
+          {/* Diğer sayfalar */}
           <Route path="/products"   element={<ProductsPage   />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/customers"  element={<CustomersPage  />} />
@@ -45,21 +49,10 @@ export default function App() {
           <Route path="/employees"  element={<EmployeesPage  />} />
           <Route path="/orders"     element={<OrdersPage     />} />
 
-          <Route path="*" element={<Navigate to="/products" replace />} />
+          {/* Bilinmeyen yol gelirse anasayfaya yönlendir */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Container>
-
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
     </>
   );
 }
