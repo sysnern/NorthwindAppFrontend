@@ -1,8 +1,7 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, NavLink } from "react-router-dom";
 import { Container, Navbar, Nav } from "react-bootstrap";
 import { ToastContainer } from 'react-toastify';
-import { LinkContainer } from 'react-router-bootstrap';
 
 import ProductsPage   from "./pages/ProductsPage";
 import CategoriesPage from "./pages/CategoriesPage";
@@ -23,24 +22,12 @@ export default function App() {
           <Navbar.Toggle aria-controls="main-nav" />
           <Navbar.Collapse id="main-nav">
             <Nav className="ms-auto">
-              <LinkContainer to="/products">
-                <Nav.Link>Ürünler</Nav.Link>
-              </LinkContainer>
-              <LinkContainer to="/categories">
-                <Nav.Link>Kategoriler</Nav.Link>
-              </LinkContainer>
-              <LinkContainer to="/customers">
-                <Nav.Link>Müşteriler</Nav.Link>
-              </LinkContainer>
-              <LinkContainer to="/suppliers">
-                <Nav.Link>Tedarikçiler</Nav.Link>
-              </LinkContainer>
-              <LinkContainer to="/employees">
-                <Nav.Link>Çalışanlar</Nav.Link>
-              </LinkContainer>
-              <LinkContainer to="/orders">
-                <Nav.Link>Siparişler</Nav.Link>
-              </LinkContainer>
+              <Nav.Link as={NavLink} to="/products">Ürünler</Nav.Link>
+              <Nav.Link as={NavLink} to="/categories">Kategoriler</Nav.Link>
+              <Nav.Link as={NavLink} to="/customers">Müşteriler</Nav.Link>
+              <Nav.Link as={NavLink} to="/suppliers">Tedarikçiler</Nav.Link>
+              <Nav.Link as={NavLink} to="/employees">Çalışanlar</Nav.Link>
+              <Nav.Link as={NavLink} to="/orders">Siparişler</Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Container>
