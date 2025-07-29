@@ -42,7 +42,9 @@ export default function CrudPage({
       setLoading(false);
     }
   };
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   // Filtreleme
   const onFilter = e => {
