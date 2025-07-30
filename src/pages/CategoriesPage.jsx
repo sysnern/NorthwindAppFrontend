@@ -57,12 +57,12 @@ export default function CategoriesPage() {
   };
 
   // Düzenleme modalını aç
-  const openEditModal = async (id) => {
+  const openEditModal = async (categoryId) => {
     try {
-      const res = await getCategoryById(id);
+      const res = await getCategoryById(categoryId);
       if (res.success) {
         setSelectedCategory(res.data);
-        setSelectedId(id);
+        setSelectedId(categoryId);
         setShowModal(true);
       } else {
         toast.error(res.message || "Kategori bilgileri alınırken hata oluştu");
@@ -75,16 +75,19 @@ export default function CategoriesPage() {
   // Silme modalını aç
   const openDeleteModal = (category) => {
     setSelectedCategory(category);
+    setSelectedId(category.categoryId);
     setShowDeleteModal(true);
   };
 
-  // Kategori kaydetme
+  // Kategori kaydetme (ekleme / güncelleme)
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
       let res;
       if (selectedId) {
-        res = await updateCategory({ ...values, categoryID: selectedId });
+        // Güncelleme
+        res = await updateCategory({ categoryId: selectedId, ...values });
       } else {
+        // Yeni ekleme
         res = await createCategory(values);
       }
 
@@ -106,7 +109,7 @@ export default function CategoriesPage() {
   // Kategori silme
   const handleDelete = async () => {
     try {
-      const res = await deleteCategory(selectedCategory.categoryID);
+      const res = await deleteCategory(selectedId);
       if (res.success) {
         toast.success("Kategori başarıyla silindi");
         setShowDeleteModal(false);
@@ -119,13 +122,16 @@ export default function CategoriesPage() {
     }
   };
 
-  const initialValues = selectedCategory ? {
-    categoryName: selectedCategory.categoryName || "",
-    description: selectedCategory.description || ""
-  } : {
-    categoryName: "",
-    description: ""
-  };
+  // Formik başlangıç değerleri
+  const initialValues = selectedCategory
+    ? {
+        categoryName: selectedCategory.categoryName || "",
+        description: selectedCategory.description || ""
+      }
+    : {
+        categoryName: "",
+        description: ""
+      };
 
   return (
     <div className="container-fluid py-4">
@@ -163,8 +169,8 @@ export default function CategoriesPage() {
               </thead>
               <tbody>
                 {categories.map(cat => (
-                  <tr key={cat.categoryID}>
-                    <td>{cat.categoryID}</td>
+                  <tr key={cat.categoryId}>
+                    <td>{cat.categoryId}</td>
                     <td>{cat.categoryName}</td>
                     <td>{cat.description}</td>
                     <td className="text-end">
@@ -172,7 +178,7 @@ export default function CategoriesPage() {
                         size="sm"
                         variant="outline-primary"
                         className="me-2"
-                        onClick={() => openEditModal(cat.categoryID)}
+                        onClick={() => openEditModal(cat.categoryId)}
                       >
                         <i className="bi bi-pencil-fill"></i>
                       </Button>
@@ -221,7 +227,9 @@ export default function CategoriesPage() {
                         disabled={isSubmitting}
                         placeholder="Kategori adını giriniz"
                       />
-                      <Form.Control.Feedback type="invalid">{errors.categoryName}</Form.Control.Feedback>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.categoryName}
+                      </Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                   <Col md={12}>
@@ -238,7 +246,9 @@ export default function CategoriesPage() {
                         disabled={isSubmitting}
                         placeholder="Açıklama giriniz"
                       />
-                      <Form.Control.Feedback type="invalid">{errors.description}</Form.Control.Feedback>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.description}
+                      </Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                 </Row>
@@ -248,7 +258,9 @@ export default function CategoriesPage() {
                   İptal
                 </Button>
                 <Button variant="primary" type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? <><Spinner size="sm" animation="border" className="me-2" />Kaydediliyor...</> : (selectedId ? 'Güncelle' : 'Kaydet')}
+                  {isSubmitting
+                    ? (<><Spinner size="sm" animation="border" className="me-2" />Kaydediliyor...</>)
+                    : (selectedId ? 'Güncelle' : 'Kaydet')}
                 </Button>
               </Modal.Footer>
             </Form>

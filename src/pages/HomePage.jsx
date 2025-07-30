@@ -1,5 +1,7 @@
 import React from 'react';
 import { Container, Row, Col, Button, Card, Image } from 'react-bootstrap';
+import banner from '../assets/images/banner.png';
+import aboutImage from '../assets/images/NorthwindBanner.png';
 import { Link } from 'react-router-dom';
 
 export default function HomePage() {
@@ -9,17 +11,15 @@ export default function HomePage() {
       <div
         className="py-5 text-white text-center"
         style={{
-          backgroundImage: 'url(https://via.placeholder.com/1200x400)',
+          backgroundImage: `url(${banner})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
         }}
       >
         <Container>
           <h1 className="display-3 fw-bold">NorthwindApp</h1>
           <p className="lead">Modern Frontend Alt Yapınızla Tanışın</p>
-          <Button as={Link} to="/products" size="lg" variant="light">
-            Ürünleri Görüntüle
-          </Button>
         </Container>
       </div>
 
@@ -28,12 +28,12 @@ export default function HomePage() {
         <h2 className="mb-4 text-center">Modüller</h2>
         <Row className="g-4">
           {[
-            { to: '/products',   title: 'Ürünler',     icon: 'bi-box-seam' },
-            { to: '/categories', title: 'Kategoriler', icon: 'bi-tags' },
-            { to: '/customers',  title: 'Müşteriler',  icon: 'bi-people' },
-            { to: '/suppliers',  title: 'Tedarikçiler',icon: 'bi-truck' },
-            { to: '/employees',  title: 'Çalışanlar',  icon: 'bi-person-badge' },
-            { to: '/orders',     title: 'Siparişler',  icon: 'bi-card-checklist' },
+            { to: '/products',   title: 'Ürünler',      icon: 'bi-box-seam' },
+            { to: '/categories', title: 'Kategoriler',  icon: 'bi-tags' },
+            { to: '/customers',  title: 'Müşteriler',   icon: 'bi-people' },
+            { to: '/suppliers',  title: 'Tedarikçiler', icon: 'bi-truck' },
+            { to: '/employees',  title: 'Çalışanlar',   icon: 'bi-person-badge' },
+            { to: '/orders',     title: 'Siparişler',   icon: 'bi-card-checklist' },
           ].map(item => (
             <Col key={item.to} sm={6} md={4}>
               <Card className="h-100 text-center shadow-sm">
@@ -54,12 +54,12 @@ export default function HomePage() {
       <Container fluid className="py-5 bg-light">
         <Container>
           <Row className="align-items-center g-4">
-            <Col md={6}>
+            <Col md={3}>
               <Image
-                src="https://via.placeholder.com/600x400"
+                src={aboutImage}
                 fluid
                 rounded
-                alt="Northwind"
+                alt="Hakkımızda"
               />
             </Col>
             <Col md={6}>
