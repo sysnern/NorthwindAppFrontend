@@ -6,7 +6,13 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .js,.jsx",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "format": "prettier --write src/**/*.{js,jsx,json,css,md}",
+    "format:check": "prettier --check src/**/*.{js,jsx,json,css,md}",
+    "type-check": "npx tsc --noEmit",
+    "analyze": "npm run build && npx serve -s build"
   },
   "dependencies": {
     "axios": "^1.10.0",
@@ -23,7 +29,12 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.0.0",
+    "eslint-plugin-react-hooks": "^4.0.0",
+    "eslint-plugin-jsx-a11y": "^6.0.0",
+    "prettier": "^3.0.0"
   },
   "browserslist": {
     "production": [

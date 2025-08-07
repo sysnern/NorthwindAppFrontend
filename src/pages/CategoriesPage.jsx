@@ -1,8 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { Modal, Button, Form, Spinner, Table, Alert, Row, Col } from "react-bootstrap";
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import { toast } from 'react-toastify';
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  Modal,
+  Button,
+  Form,
+  Spinner,
+  Table,
+  Alert,
+  Row,
+  Col,
+} from "react-bootstrap";
+import { Formik } from "formik";
+import * as Yup from "yup";
+import { toast } from "react-toastify";
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+
 import {
   getAllCategories,
   getCategoryById,
@@ -11,43 +22,119 @@ import {
   deleteCategory,
 } from "../services/CategoryService";
 
+
 const CategorySchema = Yup.object().shape({
   categoryName: Yup.string()
-    .min(2, 'Kategori adı en az 2 karakter olmalı')
-    .max(100, 'Kategori adı en fazla 100 karakter olabilir')
-    .required('Kategori adı zorunlu'),
-  description: Yup.string()
-    .max(500, 'Açıklama en fazla 500 karakter olabilir')
+    .min(2, "Kategori adı en az 2 karakter olmalı")
+    .max(50, "Kategori adı en fazla 50 karakter olabilir")
+    .required("Kategori adı zorunlu"),
 });
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // when editing, this holds the DTO
   const [selectedCategory, setSelectedCategory] = useState(null);
+  // the id to pass to update/delete
   const [selectedId, setSelectedId] = useState(null);
 
+  // Filters, sorting, and pagination state
+  const [filters, setFilters] = useState({
+    categoryName: '',
+    isDeleted: '',
+  });
+  const [sort, setSort] = useState({ field: 'categoryId', direction: 'asc' });
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Load categories on component mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllCategories({
+          sortField: sort.field,
+          sortDirection: sort.direction,
+          page,
+          pageSize: 10,
+        });
+        
+        if (res.success) {
+          setCategories(res.data.items || res.data);
+          setTotalCount(res.totalCount || 0);
+        } else {
+          toast.error(res.message || "Kategoriler yüklenirken hata oluştu");
+        }
+      } catch (error) {
+        toast.error("Kategoriler yüklenirken hata oluştu");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadInitialData();
+  }, []); // Sadece component mount'ta çalışsın
+
   // Listeyi yükle
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getAllCategories();
+      // Parametreleri doğru formata dönüştür
+      const params = {
+        categoryName: filters.categoryName || undefined,
+        isDeleted: filters.isDeleted !== '' ? (filters.isDeleted === 'true') : undefined,
+        sortField: sort.field,
+        sortDirection: sort.direction,
+        page,
+        pageSize: 10,
+      };
+      
+      const res = await getAllCategories(params);
       if (res.success) {
-        setCategories(res.data);
+        setCategories(res.data.items || res.data);
+        setTotalCount(res.totalCount || 0);
       } else {
         toast.error(res.message || "Kategoriler yüklenirken hata oluştu");
       }
-    } catch (e) {
+    } catch (error) {
       toast.error("Kategoriler yüklenirken hata oluştu");
     } finally {
       setLoading(false);
     }
+  }, [filters, sort, page]);
+
+  // Load categories when filters, sort, or page changes (but not on initial load)
+  useEffect(() => {
+    // Skip initial load since it's handled in the first useEffect
+    if (categories.length > 0 || loading === false) {
+      loadCategories();
+    }
+  }, [loadCategories, categories.length, loading]);
+
+  // Filter change handler
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setPage(1); // Reset to first page when filters change
   };
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  // Sorting handler
+  const handleSort = (field) => {
+    setSort(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+    setPage(1); // Reset to first page when sort changes
+  };
+
+  // Pagination handlers
+  const handlePageChange = (newPage) => setPage(newPage);
 
   // Yeni kategori ekleme modalını aç
   const openAddModal = () => {
@@ -67,7 +154,7 @@ export default function CategoriesPage() {
       } else {
         toast.error(res.message || "Kategori bilgileri alınırken hata oluştu");
       }
-    } catch (e) {
+    } catch (error) {
       toast.error("Kategori bilgileri alınırken hata oluştu");
     }
   };
@@ -99,7 +186,7 @@ export default function CategoriesPage() {
       } else {
         toast.error(res.message || "İşlem sırasında hata oluştu");
       }
-    } catch (e) {
+    } catch (error) {
       toast.error("İşlem sırasında hata oluştu");
     } finally {
       setSubmitting(false);
@@ -117,7 +204,7 @@ export default function CategoriesPage() {
       } else {
         toast.error(res.message || "Silme işlemi sırasında hata oluştu");
       }
-    } catch (e) {
+    } catch (error) {
       toast.error("Silme işlemi sırasında hata oluştu");
     }
   };
@@ -143,7 +230,43 @@ export default function CategoriesPage() {
         </Button>
       </div>
 
-      {/* Kategori Listesi */}
+      {/* Filters */}
+      <div className="card mb-4">
+        <div className="card-body">
+          <h5 className="card-title">Filtreler</h5>
+          <Row className="g-3">
+            <Col md={4}>
+              <Form.Control
+                name="categoryName"
+                placeholder="Kategori Adı"
+                value={filters.categoryName}
+                onChange={handleFilterChange}
+              />
+            </Col>
+            <Col md={3}>
+              <Form.Select
+                name="isDeleted"
+                value={filters.isDeleted}
+                onChange={handleFilterChange}
+              >
+                <option value="">Tüm Durumlar</option>
+                <option value="false">Aktif</option>
+                <option value="true">Silinmiş</option>
+              </Form.Select>
+            </Col>
+            <Col md={2}>
+              <Button variant="outline-primary" onClick={() => {
+                setPage(1);
+                loadCategories();
+              }} className="w-100">
+                <i className="bi bi-search"></i>
+              </Button>
+            </Col>
+          </Row>
+        </div>
+      </div>
+
+      {/* Category List Table */}
       {loading ? (
         <div className="text-center py-5">
           <Spinner animation="border" role="status">
@@ -161,9 +284,16 @@ export default function CategoriesPage() {
             <Table striped hover responsive className="mb-0">
               <thead className="table-dark">
                 <tr>
-                  <th>ID</th>
-                  <th>Kategori Adı</th>
+                  <th onClick={() => handleSort('CategoryId')} style={{ cursor: 'pointer' }}>
+                    ID {sort.field === 'CategoryId' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
+                  <th onClick={() => handleSort('categoryName')} style={{ cursor: 'pointer' }}>
+                    Kategori Adı {sort.field === 'categoryName' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
                   <th>Açıklama</th>
+                  <th onClick={() => handleSort('isDeleted')} style={{ cursor: 'pointer' }}>
+                    Durum {sort.field === 'isDeleted' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
                   <th className="text-end">İşlemler</th>
                 </tr>
               </thead>
@@ -173,6 +303,11 @@ export default function CategoriesPage() {
                     <td>{cat.categoryId}</td>
                     <td>{cat.categoryName}</td>
                     <td>{cat.description}</td>
+                    <td>
+                      <span className={`badge ${cat.isDeleted ? 'bg-secondary' : 'bg-success'}`}>
+                        {cat.isDeleted ? 'Silinmiş' : 'Aktif'}
+                      </span>
+                    </td>
                     <td className="text-end">
                       <Button
                         size="sm"
@@ -194,6 +329,38 @@ export default function CategoriesPage() {
                 ))}
               </tbody>
             </Table>
+          </div>
+          {/* Pagination Controls */}
+          <div className="d-flex justify-content-between align-items-center p-3">
+            <div>
+              Toplam: <b>{totalCount}</b> kategori
+            </div>
+            <div>
+              <span style={{ marginRight: 8 }}>
+                10 / sayfa
+              </span>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => handlePageChange(page - 1)}
+                className="me-2"
+              >
+                Önceki
+              </Button>
+              <span>
+                Sayfa <b>{page}</b> / {Math.max(1, Math.ceil(totalCount / 10))}
+              </span>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                disabled={page >= Math.ceil(totalCount / 10) || totalCount === 0 || categories.length < 10}
+                onClick={() => handlePageChange(page + 1)}
+                className="ms-2"
+              >
+                Sonraki
+              </Button>
+            </div>
           </div>
         </div>
       )}

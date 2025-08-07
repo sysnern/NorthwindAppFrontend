@@ -3,6 +3,7 @@ import { Container, Row, Col, Button, Card, Image } from 'react-bootstrap';
 import banner from '../assets/images/banner.png';
 import aboutImage from '../assets/images/NorthwindBanner.png';
 import { Link } from 'react-router-dom';
+import config from '../config/contact';
 
 export default function HomePage() {
   return (
@@ -79,9 +80,9 @@ export default function HomePage() {
         <h2 className="text-center mb-4">İletişim</h2>
         <Row className="justify-content-center">
           <Col md={8}>
-            <p><strong>Adres:</strong> Örnek Mah. 123. Sok. No:45, İstanbul, Türkiye</p>
-            <p><strong>Telefon:</strong> +90 (212) 123 45 67</p>
-            <p><strong>Email:</strong> info@northwindapp.com</p>
+            <p><strong>Adres:</strong> {config.address}</p>
+            <p><strong>Telefon:</strong> {config.phone}</p>
+            <p><strong>Email:</strong> {config.email}</p>
           </Col>
         </Row>
       </Container>

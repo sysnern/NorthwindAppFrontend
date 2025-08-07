@@ -1,28 +1,54 @@
-// src/components/CategoryForm.jsx
-import React, { useState, useEffect } from 'react';
-import { createCategory, updateCategory, getCategoryById } from '../services/api';
+import React from "react";
+import { Form, Row, Col } from "react-bootstrap";
 
-const CategoryForm = ({ selectedId, onSuccess }) => {
-  const [form, setForm] = useState({ name: '' });
+export default function CategoryForm({ form, setForm, disabled }) {
 
-  useEffect(() => {
-    if (selectedId) {
-      getCategoryById(selectedId).then(res => setForm(res.data.data));
-    }
-  }, [selectedId]);
-
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = async e => {
-    e.preventDefault();
-    selectedId ? await updateCategory(selectedId, form) : await createCategory(form);
-    onSuccess();
-    setForm({ name: '' });
+  const onChange = e => {
+    const { name, value, type, checked } = e.target;
+    setForm(f => ({ 
+      ...f, 
+      [name]: type === "checkbox" ? checked : value 
+    }));
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input name="name" value={form.name} onChange={handleChange} placeholder="Name" required />
-      <button type="submit">{selectedId ? 'Güncelle' : 'Ekle'}</button>
-    </form>
+    <Form>
+      <Form.Group className="mb-3">
+        <Form.Label>Kategori Adı</Form.Label>
+        <Form.Control
+          name="categoryName"
+          value={form.categoryName || ""}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      </Form.Group>
+
+      <Row className="mb-3">
+        <Col>
+          <Form.Group>
+            <Form.Label>Açıklama</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              name="description"
+              value={form.description || ""}
+              disabled={disabled}
+              onChange={onChange}
+            />
+          </Form.Group>
+        </Col>
+      </Row>
+
+      <Form.Group className="mb-3">
+        <Form.Check
+          type="checkbox"
+          label="Pasif"
+          name="isDeleted"
+          checked={!!form.isDeleted}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      </Form.Group>
+    </Form>
   );
-};
+}

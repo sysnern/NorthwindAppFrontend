@@ -1,12 +1,20 @@
 // src/services/SupplierService.js
-import api from './api';
+import { deduplicatedApi, normalApi, invalidateCache } from "./api";
 
 export async function getAllSuppliers(filters) {
   try {
-    // filtreleri query string olarak yollamak isterseniz:
-    const { data: apiResp } = await api.get("/api/Supplier/list", { params: filters });
-    // apiResp = { success: true, data: [ … ], message: … }
-    return { success: true, data: apiResp.data };
+    const { data: apiResp } = await deduplicatedApi.get("/api/Supplier/list", {
+      params: filters,
+    });
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      totalCount: apiResp.totalCount,
+      page: apiResp.page,
+      pageSize: apiResp.pageSize,
+      totalPages: apiResp.totalPages,
+      message: apiResp.message
+    };
   } catch (err) {
     return {
       success: false,
@@ -14,10 +22,15 @@ export async function getAllSuppliers(filters) {
     };
   }
 }
+
 export async function getSupplierById(id) {
   try {
-    const { data } = await api.get(`/api/Supplier/${id}`);
-    return { success: true, data };
+    const { data: apiResp } = await deduplicatedApi.get(`/api/Supplier/${id}`);
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
   } catch (err) {
     return {
       success: false,
@@ -25,10 +38,16 @@ export async function getSupplierById(id) {
     };
   }
 }
-export async function createSupplier(dto) {
+
+export async function createSupplier(supplierData) {
   try {
-    const { data } = await api.post("/api/Supplier", dto);
-    return { success: true, data };
+    const { data: apiResp } = await normalApi.post("/api/Supplier", supplierData);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
   } catch (err) {
     return {
       success: false,
@@ -36,11 +55,16 @@ export async function createSupplier(dto) {
     };
   }
 }
-export async function updateSupplier(dto) {
+
+export async function updateSupplier(supplierData) {
   try {
-    // dto = { supplierID, companyName, contactName }
-    const { data } = await api.put("/api/Supplier", dto);
-    return { success: true, data };
+    const { data: apiResp } = await normalApi.put("/api/Supplier", supplierData);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
   } catch (err) {
     return {
       success: false,
@@ -48,10 +72,16 @@ export async function updateSupplier(dto) {
     };
   }
 }
+
 export async function deleteSupplier(id) {
   try {
-    const { data } = await api.delete(`/api/Supplier/${id}`);
-    return { success: true, data };
+    const { data: apiResp } = await normalApi.delete(`/api/Supplier/${id}`);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
   } catch (err) {
     return {
       success: false,

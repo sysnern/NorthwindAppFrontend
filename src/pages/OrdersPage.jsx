@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Modal,
   Button,
@@ -12,6 +12,8 @@ import {
 import { Formik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+
 import {
   getAllOrders,
   getOrderById,
@@ -22,14 +24,26 @@ import {
 import { getAllCustomers } from "../services/CustomerService";
 import { getAllEmployees } from "../services/EmployeeService";
 
+
 const OrderSchema = Yup.object().shape({
-  customerId: Yup.string()
-    .required("Müşteri seçimi zorunlu"),
+  customerId: Yup.number()
+    .integer()
+    .moreThan(0, "Müşteri seçmelisiniz")
+    .required("Müşteri zorunlu"),
   employeeId: Yup.number()
-    .min(1, "Çalışan seçimi zorunlu")
-    .required("Çalışan seçimi zorunlu"),
-  orderDate: Yup.date()
-    .required("Sipariş tarihi zorunlu"),
+    .integer()
+    .moreThan(0, "Çalışan seçmelisiniz")
+    .required("Çalışan zorunlu"),
+  orderDate: Yup.date(),
+  shippedDate: Yup.date(),
+  shipAddress: Yup.string()
+    .max(200, "Gönderim adresi en fazla 200 karakter olabilir"),
+  shipCity: Yup.string()
+    .max(50, "Gönderim şehri en fazla 50 karakter olabilir"),
+  shipCountry: Yup.string()
+    .max(50, "Gönderim ülkesi en fazla 50 karakter olabilir"),
+  freight: Yup.number()
+    .min(0, "Nakliye ücreti 0'dan küçük olamaz"),
 });
 
 export default function OrdersPage() {
@@ -37,37 +51,98 @@ export default function OrdersPage() {
   const [customers, setCustomers] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // when editing, this holds the DTO
   const [selectedOrder, setSelectedOrder] = useState(null);
+  // the id to pass to update/delete
   const [selectedId, setSelectedId] = useState(null);
 
-  // fetch orders + lookup data
-  const loadAll = async () => {
+  // Filters, sorting, and pagination state
+  const [filters, setFilters] = useState({
+    orderId: '',
+    customerId: '',
+    employeeId: '',
+    orderDate: '',
+    shippedDate: '',
+    shipCity: '',
+    shipCountry: '',
+    isDeleted: '',
+  });
+  const [sort, setSort] = useState({ field: 'OrderId', direction: 'asc' });
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Load orders on component mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllOrders({
+          sortField: sort.field,
+          sortDirection: sort.direction,
+          page,
+          pageSize: 10,
+        });
+        
+        if (res.success) {
+          setOrders(res.data.items || res.data);
+          setTotalCount(res.totalCount || 0);
+        } else {
+          toast.error(res.message || "Siparişler yüklenirken hata oluştu");
+        }
+      } catch (error) {
+        toast.error("Siparişler yüklenirken hata oluştu");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadInitialData();
+  }, []); // Sadece component mount'ta çalışsın
+
+  // Listeyi yükle
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const [oRes, cRes, eRes] = await Promise.all([
-        getAllOrders(),
-        getAllCustomers(),
-        getAllEmployees(),
-      ]);
-      if (!oRes.success) throw new Error(oRes.message);
-      if (!cRes.success) throw new Error(cRes.message);
-      if (!eRes.success) throw new Error(eRes.message);
-
-      setOrders(oRes.data);
-      setCustomers(cRes.data);
-      setEmployees(eRes.data);
-    } catch (err) {
-      toast.error(err.message || "Veriler yüklenirken hata oluştu");
+      // Parametreleri doğru formata dönüştür
+      const params = {
+        customerId: filters.customerId || undefined,
+        employeeId: filters.employeeId || undefined,
+        orderDate: filters.orderDate || undefined,
+        requiredDate: filters.requiredDate || undefined,
+        shippedDate: filters.shippedDate || undefined,
+        shipCity: filters.shipCity || undefined,
+        shipCountry: filters.shipCountry || undefined,
+        isDeleted: filters.isDeleted !== '' ? (filters.isDeleted === 'true') : undefined,
+        sortField: sort.field,
+        sortDirection: sort.direction,
+        page,
+        pageSize: 10,
+      };
+      
+      const res = await getAllOrders(params);
+      if (res.success) {
+        setOrders(res.data.items || res.data);
+        setTotalCount(res.totalCount || 0);
+      } else {
+        toast.error(res.message || "Siparişler yüklenirken hata oluştu");
+      }
+    } catch (error) {
+      toast.error("Siparişler yüklenirken hata oluştu");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, sort, page]);
 
+  // Load orders when filters, sort, or page changes (but not on initial load)
   useEffect(() => {
-    loadAll();
-  }, []);
+    // Skip initial load since it's handled in the first useEffect
+    if (orders.length > 0 || loading === false) {
+      loadOrders();
+    }
+  }, [loadOrders, orders.length, loading]);
 
   const openAddModal = () => {
     setSelectedOrder(null);
@@ -97,7 +172,7 @@ export default function OrdersPage() {
       if (!res.success) throw new Error(res.message);
       toast.success("Sipariş başarıyla silindi");
       setShowDeleteModal(false);
-      loadAll();
+      loadOrders();
     } catch (err) {
       toast.error(err.message || "Silme işlemi sırasında hata oluştu");
     }
@@ -119,7 +194,7 @@ export default function OrdersPage() {
       );
       setShowModal(false);
       resetForm();
-      loadAll();
+      loadOrders();
     } catch (err) {
       toast.error(err.message || "İşlem sırasında hata oluştu");
     } finally {
@@ -139,6 +214,28 @@ export default function OrdersPage() {
         orderDate: "",
       };
 
+  // Filter change handler
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setPage(1); // Reset to first page when filters change
+  };
+
+  // Sorting handler
+  const handleSort = (field) => {
+    setSort(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+    setPage(1); // Reset to first page when sort changes
+  };
+
+  // Pagination handlers
+  const handlePageChange = (newPage) => setPage(newPage);
+
   return (
     <div className="container-fluid py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -149,6 +246,71 @@ export default function OrdersPage() {
         </Button>
       </div>
 
+      {/* Filters */}
+      <div className="card mb-4">
+        <div className="card-body">
+          <h5 className="card-title">Filtreler</h5>
+          <Row className="g-3">
+            <Col md={2}>
+              <Form.Control
+                name="orderId"
+                placeholder="Sipariş ID"
+                value={filters.orderId}
+                onChange={handleFilterChange}
+              />
+            </Col>
+            <Col md={3}>
+              <Form.Select
+                name="customerId"
+                value={filters.customerId}
+                onChange={handleFilterChange}
+              >
+                <option value="">Tüm Müşteriler</option>
+                {customers.map((c) => (
+                  <option key={c.customerId} value={c.customerId}>
+                    {c.companyName}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={3}>
+              <Form.Select
+                name="employeeId"
+                value={filters.employeeId}
+                onChange={handleFilterChange}
+              >
+                <option value="">Tüm Çalışanlar</option>
+                {employees.map((e) => (
+                  <option key={e.employeeId} value={e.employeeId}>
+                    {e.firstName} {e.lastName}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={2}>
+              <Form.Select
+                name="isDeleted"
+                value={filters.isDeleted}
+                onChange={handleFilterChange}
+              >
+                <option value="">Tüm Durumlar</option>
+                <option value="false">Aktif</option>
+                <option value="true">Silinmiş</option>
+              </Form.Select>
+            </Col>
+            <Col md={1}>
+              <Button variant="outline-primary" onClick={() => {
+                setPage(1);
+                loadOrders();
+              }} className="w-100">
+                <i className="bi bi-search"></i>
+              </Button>
+            </Col>
+          </Row>
+        </div>
+      </div>
+
+      {/* Order List Table */}
       {loading ? (
         <div className="text-center py-5">
           <Spinner animation="border" />
@@ -163,50 +325,93 @@ export default function OrdersPage() {
             <Table striped hover responsive className="mb-0">
               <thead className="table-dark">
                 <tr>
-                  <th>ID</th>
-                  <th>Müşteri</th>
-                  <th>Çalışan</th>
-                  <th>Sipariş Tarihi</th>
+                  <th onClick={() => handleSort('OrderId')} style={{ cursor: 'pointer' }}>
+                    ID {sort.field === 'OrderId' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
+                  <th onClick={() => handleSort('CustomerId')} style={{ cursor: 'pointer' }}>
+                    Müşteri {sort.field === 'CustomerId' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
+                  <th onClick={() => handleSort('EmployeeId')} style={{ cursor: 'pointer' }}>
+                    Çalışan {sort.field === 'EmployeeId' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
+                  <th onClick={() => handleSort('orderDate')} style={{ cursor: 'pointer' }}>
+                    Sipariş Tarihi {sort.field === 'orderDate' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
+                  <th onClick={() => handleSort('isDeleted')} style={{ cursor: 'pointer' }}>
+                    Durum {sort.field === 'isDeleted' ? (sort.direction === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                  </th>
                   <th className="text-end">İşlemler</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map((o) => (
-                  <tr key={o.orderId}>
-                    <td>{o.orderId}</td>
-                    <td>
-                      {o.customerId} —{" "}
-                      {customers.find(c => c.customerId === o.customerId)
-                        ?.companyName}
-                    </td>
-                    <td>
-                      {o.employeeId} —{" "}
-                      {employees.find(e => e.employeeId === o.employeeId)
-                        ? `${employees.find(e => e.employeeId === o.employeeId).firstName} ${employees.find(e => e.employeeId === o.employeeId).lastName}`
-                        : ""}
-                    </td>
-                    <td>{o.orderDate?.slice(0, 10)}</td>
-                    <td className="text-end">
-                      <Button
-                        size="sm"
-                        variant="outline-primary"
-                        className="me-2"
-                        onClick={() => openEditModal(o.orderId)}
-                      >
-                        <i className="bi bi-pencil-fill" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => openDeleteModal(o)}
-                      >
-                        <i className="bi bi-trash-fill" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {orders.map((o) => {
+                  const customer = customers.find((c) => c.customerId === o.customerId);
+                  const employee = employees.find((e) => e.employeeId === o.employeeId);
+                  return (
+                    <tr key={o.orderId}>
+                      <td>{o.orderId}</td>
+                      <td>{customer ? customer.companyName : o.customerId}</td>
+                      <td>{employee ? `${employee.firstName} ${employee.lastName}` : o.employeeId}</td>
+                      <td>{o.orderDate?.slice(0, 10)}</td>
+                      <td>
+                        <span className={`badge ${o.isDeleted ? 'bg-secondary' : 'bg-success'}`}>
+                          {o.isDeleted ? 'Silinmiş' : 'Aktif'}
+                        </span>
+                      </td>
+                      <td className="text-end">
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          className="me-2"
+                          onClick={() => openEditModal(o.orderId)}
+                        >
+                          <i className="bi bi-pencil-fill" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline-danger"
+                          onClick={() => openDeleteModal(o)}
+                        >
+                          <i className="bi bi-trash-fill" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
+          </div>
+          {/* Pagination Controls */}
+          <div className="d-flex justify-content-between align-items-center p-3">
+            <div>
+              Toplam: <b>{totalCount}</b> sipariş
+            </div>
+            <div>
+              <span style={{ marginRight: 8 }}>
+                10 / sayfa
+              </span>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => handlePageChange(page - 1)}
+                className="me-2"
+              >
+                Önceki
+              </Button>
+              <span>
+                Sayfa <b>{page}</b> / {Math.max(1, Math.ceil(totalCount / 10))}
+              </span>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                disabled={page >= Math.ceil(totalCount / 10) || totalCount === 0 || orders.length < 10}
+                onClick={() => handlePageChange(page + 1)}
+                className="ms-2"
+              >
+                Sonraki
+              </Button>
+            </div>
           </div>
         </div>
       )}

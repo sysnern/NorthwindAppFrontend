@@ -38,14 +38,14 @@ export default function ProductForm({ form, setForm, disabled }) {
           <Form.Group>
             <Form.Label>Kategori</Form.Label>
             <Form.Select
-              name="categoryID"
-              value={form.categoryID || ""}
+              name="categoryId"
+              value={form.categoryId || ""}
               disabled={disabled}
               onChange={onChange}
             >
               <option value="">-- Seçiniz --</option>
               {categories.map(c => (
-                <option key={c.categoryID} value={c.categoryID}>
+                <option key={c.categoryId} value={c.categoryId}>
                   {c.categoryName}
                 </option>
               ))}
@@ -82,8 +82,8 @@ export default function ProductForm({ form, setForm, disabled }) {
         <Form.Check
           type="checkbox"
           label="Pasif"
-          name="discontinued"
-          checked={!!form.discontinued}
+          name="isDeleted"
+          checked={!!form.isDeleted}
           disabled={disabled}
           onChange={onChange}
         />

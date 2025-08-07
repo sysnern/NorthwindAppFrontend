@@ -1,84 +1,91 @@
-import api from "./api";
+// src/services/CategoryService.js
+import { deduplicatedApi, normalApi, invalidateCache } from "./api";
 
 export async function getAllCategories(filters) {
   try {
-    const { data: apiResp } = await api.get("/api/Category/list", {
-      params: filters
+    const { data: apiResp } = await deduplicatedApi.get("/api/Category/list", {
+      params: filters,
     });
-    // apiResp = { success: true, data: [...], message: "…" }
-    return {
-      success: apiResp.success,
+    return { 
+      success: apiResp.success, 
       data: apiResp.data,
+      totalCount: apiResp.totalCount,
+      page: apiResp.page,
+      pageSize: apiResp.pageSize,
+      totalPages: apiResp.totalPages,
       message: apiResp.message
     };
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message
+      message: err.response?.data?.message || err.message,
     };
   }
 }
 
 export async function getCategoryById(id) {
   try {
-    const { data: apiResp } = await api.get(`/api/Category/${id}`);
-    return {
-      success: apiResp.success,
+    const { data: apiResp } = await deduplicatedApi.get(`/api/Category/${id}`);
+    return { 
+      success: apiResp.success, 
       data: apiResp.data,
       message: apiResp.message
     };
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message
+      message: err.response?.data?.message || err.message,
     };
   }
 }
 
-export async function createCategory(dto) {
+export async function createCategory(categoryData) {
   try {
-    const { data: apiResp } = await api.post("/api/Category", dto);
-    return {
-      success: apiResp.success,
+    const { data: apiResp } = await normalApi.post("/api/Category", categoryData);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
       data: apiResp.data,
       message: apiResp.message
     };
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message
+      message: err.response?.data?.message || err.message,
     };
   }
 }
 
-export async function updateCategory(dto) {
+export async function updateCategory(categoryData) {
   try {
-    const { data: apiResp } = await api.put("/api/Category", dto);
-    return {
-      success: apiResp.success,
+    const { data: apiResp } = await normalApi.put("/api/Category", categoryData);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
       data: apiResp.data,
       message: apiResp.message
     };
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message
+      message: err.response?.data?.message || err.message,
     };
   }
 }
 
 export async function deleteCategory(id) {
   try {
-    const { data: apiResp } = await api.delete(`/api/Category/${id}`);
-    return {
-      success: apiResp.success,
+    const { data: apiResp } = await normalApi.delete(`/api/Category/${id}`);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
       data: apiResp.data,
       message: apiResp.message
     };
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message
+      message: err.response?.data?.message || err.message,
     };
   }
 }

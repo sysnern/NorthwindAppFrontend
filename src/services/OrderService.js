@@ -1,35 +1,20 @@
 // src/services/OrderService.js
-import api from './api';
+import { deduplicatedApi, normalApi, invalidateCache } from "./api";
 
-export async function getAllOrders() {
+export async function getAllOrders(filters) {
   try {
-    const { data } = await api.get("/api/Order/list");
-    return data;
-  } catch (e) {
-    return { success: false, message: e.message };
-  }
-}
-export async function getOrderById(id) {
-  try {
-    const { data } = await api.get(`/api/Order/${id}`);
-    return data;
-  } catch (err) {
-    return { success: false, message: err.message };
-  }
-}
-export async function createOrder(dto) {
-  try {
-    const { data } = await api.post("/api/Order", dto);
-    return data;
-  } catch (err) {
-    return { success: false, message: err.message };
-  }
-}
-export async function updateOrder(dto) {
-  try {
-    // dto = { orderID, customerID, employeeID, orderDate }
-    const { data } = await api.put("/api/Order", dto);
-    return { success: true, data };
+    const { data: apiResp } = await deduplicatedApi.get("/api/Order/list", {
+      params: filters,
+    });
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      totalCount: apiResp.totalCount,
+      page: apiResp.page,
+      pageSize: apiResp.pageSize,
+      totalPages: apiResp.totalPages,
+      message: apiResp.message
+    };
   } catch (err) {
     return {
       success: false,
@@ -37,11 +22,70 @@ export async function updateOrder(dto) {
     };
   }
 }
+
+export async function getOrderById(id) {
+  try {
+    const { data: apiResp } = await deduplicatedApi.get(`/api/Order/${id}`);
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
+  }
+}
+
+export async function createOrder(orderData) {
+  try {
+    const { data: apiResp } = await normalApi.post("/api/Order", orderData);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
+  }
+}
+
+export async function updateOrder(orderData) {
+  try {
+    const { data: apiResp } = await normalApi.put("/api/Order", orderData);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
+  }
+}
+
 export async function deleteOrder(id) {
   try {
-    const { data } = await api.delete(`/api/Order/${id}`);
-    return data;
+    const { data: apiResp } = await normalApi.delete(`/api/Order/${id}`);
+    invalidateCache(); // Cache'i temizle
+    return { 
+      success: apiResp.success, 
+      data: apiResp.data,
+      message: apiResp.message
+    };
   } catch (err) {
-    return { success: false, message: err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   }
 }
